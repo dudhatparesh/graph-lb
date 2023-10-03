@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import axios, { AxiosResponse } from 'axios';
 
@@ -19,6 +20,18 @@ interface GraphDataResponse {
     // Potential more fields depending on the GraphQL server response structure
 }
 
+async function fetchMetaDataFromNode(url: string, subgraphName:string) :
+    Promise<{ data: GraphDataResponse | null; error: string | null }> {
+    try {
+        const response: AxiosResponse = await axios.post(url+"/subgraphs/name/"+subgraphName, {
+            query: "query meta{_meta{block{number}}}",
+            variables: {},
+        });
+        return { data: response.data as GraphDataResponse, error: null };
+    } catch (error: any) {
+        return { data: null, error: error.toString() };
+    }
+}
 async function fetchDataFromNode(url: string, query: string, variables: object, subgraphName: string):
     Promise<{ data: GraphDataResponse | null; error: string | null }> {
     try {
@@ -34,7 +47,7 @@ async function fetchDataFromNode(url: string, query: string, variables: object, 
 
 app.use(async (req: Request, res: Response, next: NextFunction) => {
     const nodes: string[] = process.env.NODE_URLS?.split(',') ?? [];
-    
+    console.log(nodes)
     // Extracting query and variables from the request body
     let { query, variables,subgraphName } = req.body;
 
@@ -62,8 +75,8 @@ console.log(query);
         error: string | null;
     } } = {};
     for (let node of nodes) {
-        const { data, error } = await fetchDataFromNode(node, query, variables,subgraphName);
-        
+        const { data, error } = await fetchMetaDataFromNode(node, subgraphName);
+        console.log(data)
         if (error) {
             console.error(`Error fetching data from ${node}: ${error}`);
             graphNodeWithBlocks[node] = { block: -1, error: error };
@@ -77,15 +90,19 @@ console.log(query);
             latestGraphNode = node;
         }
 
-            graphNodeWithBlocks[node] = { block: currentBlock, error: null };
+        graphNodeWithBlocks[node] = { block: currentBlock, error: null };
 
     }
     
     if (latestData === null) {
         return res.status(500).json({ error: 'Unable to fetch data from any of the node' });
     }
-    console.log(latestData)
-    return res.status(200).json({ data: latestData.data,graphNode:latestGraphNode, graphNodeWithBlocks: graphNodeWithBlocks });
+    console.log("fetching data from node: "+latestGraphNode)
+    const { data, error } = await fetchDataFromNode(latestGraphNode,query, variables ,subgraphName);
+    if(error){
+        return res.status(500).json({ error: 'Unable to fetch data from latestGraphNode'+latestGraphNode });
+    }
+    return res.status(200).json({ data: data?.data,graphNode:latestGraphNode, graphNodeWithBlocks: graphNodeWithBlocks });
 });
 
 app.post('/get-data', (req: Request, res: Response) => {
