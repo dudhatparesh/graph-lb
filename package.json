@@ -4,6 +4,7 @@
   "description": "",
   "main": "src/middleware.js",
   "scripts": {
+    "systemd":"/root/.nvm/versions/node/v18.15.0/bin/node /root/.nvm/versions/node/v18.15.0/bin/ts-node /root/graph-lb/src/middleware.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon --exec ts-node src/middleware.ts"
   },
