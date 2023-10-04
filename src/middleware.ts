@@ -47,9 +47,13 @@ async function fetchDataFromNode(url: string, query: string, variables: object, 
 
 app.use(async (req: Request, res: Response, next: NextFunction) => {
     const nodes: string[] = process.env.NODE_URLS?.split(',') ?? [];
+    console.log(req.url)
     console.log(nodes)
     // Extracting query and variables from the request body
-    let { query, variables,subgraphName } = req.body;
+    let { query, variables } = req.body;
+
+    const subgraphName = req.url.split('/subgraphs/name/')[1];
+    console.log(subgraphName)
 
     // Validating if query and variables are provided in request body
     if (!query) {
@@ -102,7 +106,7 @@ console.log(query);
     if(error){
         return res.status(500).json({ error: 'Unable to fetch data from latestGraphNode'+latestGraphNode });
     }
-    return res.status(200).json({ data: data?.data,graphNode:latestGraphNode, graphNodeWithBlocks: graphNodeWithBlocks });
+    return res.status(200).json({ data: data?.data,graphNode:latestGraphNode,subgraphName:subgraphName, graphNodeWithBlocks: graphNodeWithBlocks });
 });
 
 app.post('/get-data', (req: Request, res: Response) => {
