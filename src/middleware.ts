@@ -23,7 +23,7 @@ interface GraphDataResponse {
 async function fetchMetaDataFromNode(url: string, subgraphName:string) :
     Promise<{ data: GraphDataResponse | null; error: string | null }> {
     try {
-        const response: AxiosResponse = await axios.post(url+"/subgraphs/name/"+subgraphName, {
+        const response: AxiosResponse = await axios.post(url+subgraphName, {
             query: "query meta{_meta{block{number}}}",
             variables: {},
         });
@@ -35,7 +35,7 @@ async function fetchMetaDataFromNode(url: string, subgraphName:string) :
 async function fetchDataFromNode(url: string, query: string, variables: object, subgraphName: string):
     Promise<{ data: GraphDataResponse | null; error: string | null }> {
     try {
-        const response: AxiosResponse = await axios.post(url+"/subgraphs/name/"+subgraphName, {
+        const response: AxiosResponse = await axios.post(url+subgraphName, {
             query: query,
             variables: variables,
         });
@@ -52,8 +52,8 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
     // Extracting query and variables from the request body
     let { query, variables } = req.body;
 
-    const subgraphName = req.url.split('/subgraphs/name/')[1];
-    console.log(subgraphName)
+
+    console.log(req.url)
 
     // Validating if query and variables are provided in request body
     if (!query) {
@@ -79,7 +79,7 @@ console.log(query);
         error: string | null;
     } } = {};
     for (let node of nodes) {
-        const { data, error } = await fetchMetaDataFromNode(node, subgraphName);
+        const { data, error } = await fetchMetaDataFromNode(node, req.url);
         console.log(data)
         if (error) {
             console.error(`Error fetching data from ${node}: ${error}`);
@@ -102,11 +102,11 @@ console.log(query);
         return res.status(500).json({ error: 'Unable to fetch data from any of the node' });
     }
     console.log("fetching data from node: "+latestGraphNode)
-    const { data, error } = await fetchDataFromNode(latestGraphNode,query, variables ,subgraphName);
+    const { data, error } = await fetchDataFromNode(latestGraphNode,query, variables ,req.url);
     if(error){
         return res.status(500).json({ error: 'Unable to fetch data from latestGraphNode'+latestGraphNode });
     }
-    return res.status(200).json({ data: data?.data,graphNode:latestGraphNode,subgraphName:subgraphName, graphNodeWithBlocks: graphNodeWithBlocks });
+    return res.status(200).json({ data: data?.data,graphNode:latestGraphNode,subgraphName:req.url, graphNodeWithBlocks: graphNodeWithBlocks });
 });
 
 app.post('/get-data', (req: Request, res: Response) => {
