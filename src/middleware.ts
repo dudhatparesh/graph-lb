@@ -1,10 +1,29 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import axios, { AxiosResponse } from 'axios';
 
 const app = express();
 const PORT: number = Number(process.env.PORT) || 3000;
+// List of allowed domains
+const allowedDomains: string[] = process.env.ALLOWED_DOMAINS_CORS?.split(',') ?? [];
 
+
+const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+        if (allowedDomains.indexOf(origin as string) !== -1 || !origin) {
+            // Allow the request
+            callback(null, true);
+        } else {
+            // Disallow the request
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE"],  // specify the methods you want to allow
+    allowedHeaders: ["Content-Type", "Authorization"]
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 interface GraphDataResponse {
